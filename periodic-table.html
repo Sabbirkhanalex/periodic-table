@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Periodic Table Animation</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020b18;
+    --grid-line: rgba(0, 200, 255, 0.08);
+    --glow: #00e5ff;
+    --glow2: #ff00aa;
+    --card-bg: rgba(0, 18, 36, 0.85);
+    --text: #e0f7ff;
+    --alkali: #ff4d6d;
+    --alkaline: #ff9f43;
+    --transition: #00cec9;
+    --post: #6c5ce7;
+    --metalloid: #00b894;
+    --nonmetal: #0984e3;
+    --halogen: #fd79a8;
+    --noble: #a29bfe;
+    --lanthanide: #fdcb6e;
+    --actinide: #e17055;
+    --unknown: #636e72;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: auto;
+    overflow-y: auto;
+    cursor: crosshair;
+  }
+
+  /* Animated background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridPulse 6s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  @keyframes gridPulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+
+  /* Scanline effect */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  header {
+    text-align: center;
+    padding: 28px 20px 10px;
+    position: relative;
+    z-index: 10;
+  }
+
+  header h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(1.4rem, 4vw, 2.8rem);
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: transparent;
+    background: linear-gradient(135deg, var(--glow), var(--glow2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 18px rgba(0,229,255,0.5));
+    animation: titlePulse 3s ease-in-out infinite;
+  }
+
+  @keyframes titlePulse {
+    0%, 100% { filter: drop-shadow(0 0 18px rgba(0,229,255,0.5)); }
+    50% { filter: drop-shadow(0 0 36px rgba(255,0,170,0.7)); }
+  }
+
+  header p {
+    font-size: 0.75rem;
+    color: rgba(0,229,255,0.5);
+    letter-spacing: 0.3em;
+    margin-top: 6px;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 16px;
+    padding: 10px 20px;
+    position: relative;
+    z-index: 10;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.62rem;
+    letter-spacing: 0.05em;
+    opacity: 0;
+    animation: fadeInUp 0.4s forwards;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* Table wrapper */
+  .table-wrapper {
+    position: relative;
+    z-index: 10;
+    padding: 10px 16px 30px;
+    overflow-x: auto;
+  }
+
+  .periodic-table {
+    display: grid;
+    grid-template-columns: repeat(18, minmax(52px, 62px));
+    grid-template-rows: repeat(10, minmax(58px, 68px));
+    gap: 3px;
+    width: max-content;
+    margin: 0 auto;
+  }
+
+  /* Element card */
+  .element {
+    position: relative;
+    background: var(--card-bg);
+    border: 1px solid rgba(0, 229, 255, 0.12);
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 3px;
+    cursor: pointer;
+    overflow: hidden;
+    opacity: 0;
+    transform: scale(0.4) rotateY(90deg);
+    transition:
+      transform 0.25s ease,
+      box-shadow 0.25s ease,
+      border-color 0.25s ease,
+      opacity 0.15s ease;
+    animation: cardReveal 0.5s forwards;
+  }
+
+  .element::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.03), transparent);
+    pointer-events: none;
+  }
+
+  /* Color strip on left */
+  .element::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--cat-color, var(--glow));
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+
+  @keyframes cardReveal {
+    to { opacity: 1; transform: scale(1) rotateY(0deg); }
+  }
+
+  .element:hover {
+    transform: scale(1.18) translateY(-3px);
+    border-color: var(--cat-color, var(--glow));
+    box-shadow:
+      0 0 16px var(--cat-color, var(--glow)),
+      0 0 32px rgba(0,0,0,0.6),
+      inset 0 0 10px rgba(255,255,255,0.03);
+    z-index: 50;
+  }
+
+  .element:hover::after { opacity: 1; }
+
+  .element:hover .el-symbol {
+    text-shadow: 0 0 12px var(--cat-color, var(--glow));
+  }
+
+  .el-number {
+    font-size: 0.48rem;
+    color: rgba(255,255,255,0.4);
+    align-self: flex-start;
+    padding-left: 4px;
+    line-height: 1;
+  }
+
+  .el-symbol {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--cat-color, var(--glow));
+    line-height: 1.1;
+    transition: text-shadow 0.2s;
+  }
+
+  .el-name {
+    font-size: 0.38rem;
+    color: rgba(255,255,255,0.5);
+    text-align: center;
+    line-height: 1.2;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    width: 100%;
+    padding: 0 3px;
+  }
+
+  .el-mass {
+    font-size: 0.36rem;
+    color: rgba(255,255,255,0.3);
+  }
+
+  /* Shimmer scan on hover */
+  .element:hover::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 30%,
+      rgba(255,255,255,0.07) 50%,
+      transparent 70%
+    );
+    animation: shimmerScan 0.6s ease forwards;
+  }
+
+  @keyframes shimmerScan {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(100%); }
+  }
+
+  /* Period labels */
+  .period-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.55rem;
+    color: rgba(0,229,255,0.35);
+    font-family: 'Orbitron', sans-serif;
+    opacity: 0;
+    animation: fadeInUp 0.5s 0.5s forwards;
+  }
+
+  /* Group labels row */
+  .group-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.5rem;
+    color: rgba(0,229,255,0.3);
+    font-family: 'Orbitron', sans-serif;
+    opacity: 0;
+    animation: fadeInUp 0.5s 0.3s forwards;
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Lanthanide/Actinide separator row */
+  .separator-row {
+    grid-column: 1 / -1;
+    height: 6px;
+  }
+
+  /* Tooltip */
+  .tooltip {
+    position: fixed;
+    background: rgba(0, 10, 20, 0.97);
+    border: 1px solid var(--glow);
+    border-radius: 8px;
+    padding: 14px 18px;
+    pointer-events: none;
+    z-index: 1000;
+    min-width: 200px;
+    opacity: 0;
+    transform: scale(0.9) translateY(6px);
+    transition: opacity 0.15s, transform 0.15s;
+    box-shadow: 0 0 30px rgba(0,229,255,0.2);
+  }
+
+  .tooltip.visible {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+
+  .tooltip-symbol {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: var(--tt-color, var(--glow));
+    text-shadow: 0 0 16px var(--tt-color, var(--glow));
+    line-height: 1;
+  }
+
+  .tooltip-name {
+    font-size: 0.85rem;
+    color: var(--text);
+    font-family: 'Orbitron', sans-serif;
+    margin-top: 4px;
+    font-weight: 700;
+  }
+
+  .tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.55);
+    margin-top: 4px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding-top: 6px;
+    gap: 16px;
+  }
+
+  .tooltip-row span:last-child {
+    color: rgba(255,255,255,0.9);
+  }
+
+  /* Particle canvas */
+  #particles {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* ── ATOM CIRCLE ANIMATION ─────────────────────────────────── */
+  .atom-wrap {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 8px auto 0;
+    width: 130px;
+    height: 130px;
+  }
+
+  .atom-core {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #fff, var(--glow));
+    box-shadow: 0 0 18px var(--glow), 0 0 36px rgba(0,229,255,0.4);
+    animation: corePulse 2s ease-in-out infinite;
+    z-index: 5;
+  }
+
+  @keyframes corePulse {
+    0%, 100% { transform: scale(1);   box-shadow: 0 0 18px var(--glow), 0 0 36px rgba(0,229,255,0.4); }
+    50%       { transform: scale(1.2); box-shadow: 0 0 28px var(--glow2), 0 0 56px rgba(255,0,170,0.5); }
+  }
+
+  .orbit {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid rgba(0,229,255,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .orbit-1 { width: 60px;  height: 60px;  animation: spin1 3s linear infinite; }
+  .orbit-2 { width: 90px;  height: 90px;  animation: spin2 5s linear infinite; border-color: rgba(255,0,170,0.2); }
+  .orbit-3 { width: 120px; height: 120px; animation: spin3 7s linear infinite; border-color: rgba(253,203,110,0.2); }
+
+  @keyframes spin1 { to { transform: rotate(360deg); } }
+  @keyframes spin2 { to { transform: rotate(-360deg); } }
+  @keyframes spin3 { to { transform: rotate(360deg); } }
+
+  .electron {
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    top: -3.5px;
+    left: calc(50% - 3.5px);
+  }
+
+  .orbit-1 .electron { background: var(--glow);    box-shadow: 0 0 8px var(--glow); }
+  .orbit-2 .electron { background: var(--glow2);   box-shadow: 0 0 8px var(--glow2); }
+  .orbit-3 .electron { background: #fdcb6e;         box-shadow: 0 0 8px #fdcb6e; }
+
+  /* Second electron on orbit 3 at 180° */
+  .orbit-3 .electron-2 {
+    position: absolute;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    bottom: -3.5px;
+    left: calc(50% - 3.5px);
+    background: #a29bfe;
+    box-shadow: 0 0 8px #a29bfe;
+  }
+
+  /* ── TOOLTIP ATOM (small) ──────────────────────────────────── */
+  .tt-atom {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .tt-core {
+    position: absolute;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #fff, var(--tt-color, var(--glow)));
+    box-shadow: 0 0 10px var(--tt-color, var(--glow));
+    z-index: 5;
+  }
+
+  .tt-orbit {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tt-orbit-1 { width: 30px; height: 30px; animation: spin1 2s linear infinite; }
+  .tt-orbit-2 { width: 50px; height: 50px; animation: spin2 3.5s linear infinite; }
+  .tt-orbit-3 { width: 64px; height: 64px; animation: spin3 5s linear infinite; }
+
+  .tt-electron {
+    position: absolute;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    top: -2.5px;
+    left: calc(50% - 2.5px);
+    background: var(--tt-color, var(--glow));
+    box-shadow: 0 0 6px var(--tt-color, var(--glow));
+  }
+
+  .tt-electron-2 {
+    position: absolute;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    bottom: -2.5px;
+    left: calc(50% - 2.5px);
+    background: var(--tt-color, var(--glow));
+    box-shadow: 0 0 6px var(--tt-color, var(--glow));
+    opacity: 0.7;
+  }
+
+  /* ── RIPPLE RING on click ─────────────────────────────────── */
+  .ripple-ring {
+    position: fixed;
+    border-radius: 50%;
+    border: 2px solid var(--glow);
+    pointer-events: none;
+    z-index: 999;
+    animation: rippleOut 0.8s ease-out forwards;
+  }
+
+  @keyframes rippleOut {
+    from { width: 10px; height: 10px; opacity: 1; transform: translate(-50%,-50%) scale(1); }
+    to   { width: 10px; height: 10px; opacity: 0; transform: translate(-50%,-50%) scale(14); }
+  }
+
+  /* ── ORBIT TRAIL on element hover ────────────────────────── */
+  .orbit-overlay {
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    border: 1.5px solid var(--cat-color, var(--glow));
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    animation: spin1 2s linear infinite;
+  }
+
+  .element:hover .orbit-overlay { opacity: 0.5; }
+
+  .orbit-dot {
+    position: absolute;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--cat-color, var(--glow));
+    box-shadow: 0 0 6px var(--cat-color, var(--glow));
+    top: -2.5px;
+    left: calc(50% - 2.5px);
+  }
+
+  /* Hover glow overlay for category filter */
+  .dim .element:not(.highlighted) {
+    opacity: 0.15;
+    filter: grayscale(0.8);
+  }
+
+  .dim .element.highlighted {
+    box-shadow: 0 0 20px var(--cat-color, var(--glow));
+  }
+
+  /* Category buttons */
+  .cat-filter {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px 10px;
+    padding: 6px 20px 12px;
+    position: relative;
+    z-index: 10;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .cat-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid currentColor;
+    background: transparent;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .cat-btn:hover, .cat-btn.active {
+    color: var(--btn-color);
+    border-color: var(--btn-color);
+    box-shadow: 0 0 10px var(--btn-color);
+    background: rgba(0,0,0,0.4);
+  }
+</style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+
+<header>
+  <h1>Periodic Table of Elements</h1>
+  <p>// 118 elements &nbsp;·&nbsp; interactive &nbsp;·&nbsp; animated //</p>
+</header>
+
+<!-- Animated Atom in header -->
+<div class="atom-wrap">
+  <div class="atom-core"></div>
+  <div class="orbit orbit-1"><div class="electron"></div></div>
+  <div class="orbit orbit-2"><div class="electron"></div></div>
+  <div class="orbit orbit-3"><div class="electron"></div><div class="electron-2"></div></div>
+</div>
+
+<div class="cat-filter" id="catFilter"></div>
+<div class="legend" id="legend"></div>
+
+<div class="table-wrapper">
+  <div class="periodic-table" id="table"></div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+const CATEGORIES = {
+  alkali:       { label: 'Alkali Metal',        color: '#ff4d6d' },
+  alkaline:     { label: 'Alkaline Earth',      color: '#ff9f43' },
+  transition:   { label: 'Transition Metal',    color: '#00cec9' },
+  post:         { label: 'Post-Transition',      color: '#6c5ce7' },
+  metalloid:    { label: 'Metalloid',            color: '#00b894' },
+  nonmetal:     { label: 'Nonmetal',             color: '#0984e3' },
+  halogen:      { label: 'Halogen',              color: '#fd79a8' },
+  noble:        { label: 'Noble Gas',            color: '#a29bfe' },
+  lanthanide:   { label: 'Lanthanide',           color: '#fdcb6e' },
+  actinide:     { label: 'Actinide',             color: '#e17055' },
+  unknown:      { label: 'Unknown',              color: '#636e72' },
+};
+
+// [symbol, name, mass, category, period, group]
+// group 0 = period label column, group 19 = beyond (for lanthanides star)
+const ELEMENTS = [
+  // Period 1
+  ['H',  'Hydrogen',     '1.008',   'nonmetal',   1, 1],
+  ['He', 'Helium',       '4.003',   'noble',       1, 18],
+  // Period 2
+  ['Li', 'Lithium',      '6.941',   'alkali',      2, 1],
+  ['Be', 'Beryllium',    '9.012',   'alkaline',    2, 2],
+  ['B',  'Boron',        '10.81',   'metalloid',   2, 13],
+  ['C',  'Carbon',       '12.011',  'nonmetal',    2, 14],
+  ['N',  'Nitrogen',     '14.007',  'nonmetal',    2, 15],
+  ['O',  'Oxygen',       '15.999',  'nonmetal',    2, 16],
+  ['F',  'Fluorine',     '18.998',  'halogen',     2, 17],
+  ['Ne', 'Neon',         '20.180',  'noble',       2, 18],
+  // Period 3
+  ['Na', 'Sodium',       '22.990',  'alkali',      3, 1],
+  ['Mg', 'Magnesium',    '24.305',  'alkaline',    3, 2],
+  ['Al', 'Aluminium',    '26.982',  'post',        3, 13],
+  ['Si', 'Silicon',      '28.086',  'metalloid',   3, 14],
+  ['P',  'Phosphorus',   '30.974',  'nonmetal',    3, 15],
+  ['S',  'Sulfur',       '32.06',   'nonmetal',    3, 16],
+  ['Cl', 'Chlorine',     '35.45',   'halogen',     3, 17],
+  ['Ar', 'Argon',        '39.948',  'noble',       3, 18],
+  // Period 4
+  ['K',  'Potassium',    '39.098',  'alkali',      4, 1],
+  ['Ca', 'Calcium',      '40.078',  'alkaline',    4, 2],
+  ['Sc', 'Scandium',     '44.956',  'transition',  4, 3],
+  ['Ti', 'Titanium',     '47.867',  'transition',  4, 4],
+  ['V',  'Vanadium',     '50.942',  'transition',  4, 5],
+  ['Cr', 'Chromium',     '51.996',  'transition',  4, 6],
+  ['Mn', 'Manganese',    '54.938',  'transition',  4, 7],
+  ['Fe', 'Iron',         '55.845',  'transition',  4, 8],
+  ['Co', 'Cobalt',       '58.933',  'transition',  4, 9],
+  ['Ni', 'Nickel',       '58.693',  'transition',  4, 10],
+  ['Cu', 'Copper',       '63.546',  'transition',  4, 11],
+  ['Zn', 'Zinc',         '65.38',   'transition',  4, 12],
+  ['Ga', 'Gallium',      '69.723',  'post',        4, 13],
+  ['Ge', 'Germanium',    '72.630',  'metalloid',   4, 14],
+  ['As', 'Arsenic',      '74.922',  'metalloid',   4, 15],
+  ['Se', 'Selenium',     '78.971',  'nonmetal',    4, 16],
+  ['Br', 'Bromine',      '79.904',  'halogen',     4, 17],
+  ['Kr', 'Krypton',      '83.798',  'noble',       4, 18],
+  // Period 5
+  ['Rb', 'Rubidium',     '85.468',  'alkali',      5, 1],
+  ['Sr', 'Strontium',    '87.62',   'alkaline',    5, 2],
+  ['Y',  'Yttrium',      '88.906',  'transition',  5, 3],
+  ['Zr', 'Zirconium',    '91.224',  'transition',  5, 4],
+  ['Nb', 'Niobium',      '92.906',  'transition',  5, 5],
+  ['Mo', 'Molybdenum',   '95.96',   'transition',  5, 6],
+  ['Tc', 'Technetium',   '(98)',     'transition',  5, 7],
+  ['Ru', 'Ruthenium',    '101.07',  'transition',  5, 8],
+  ['Rh', 'Rhodium',      '102.91',  'transition',  5, 9],
+  ['Pd', 'Palladium',    '106.42',  'transition',  5, 10],
+  ['Ag', 'Silver',       '107.87',  'transition',  5, 11],
+  ['Cd', 'Cadmium',      '112.41',  'transition',  5, 12],
+  ['In', 'Indium',       '114.82',  'post',        5, 13],
+  ['Sn', 'Tin',          '118.71',  'post',        5, 14],
+  ['Sb', 'Antimony',     '121.76',  'metalloid',   5, 15],
+  ['Te', 'Tellurium',    '127.60',  'metalloid',   5, 16],
+  ['I',  'Iodine',       '126.90',  'halogen',     5, 17],
+  ['Xe', 'Xenon',        '131.29',  'noble',       5, 18],
+  // Period 6
+  ['Cs', 'Caesium',      '132.91',  'alkali',      6, 1],
+  ['Ba', 'Barium',       '137.33',  'alkaline',    6, 2],
+  ['La', 'Lanthanum',    '138.91',  'lanthanide',  6, 3],  // placeholder
+  ['Hf', 'Hafnium',      '178.49',  'transition',  6, 4],
+  ['Ta', 'Tantalum',     '180.95',  'transition',  6, 5],
+  ['W',  'Tungsten',     '183.84',  'transition',  6, 6],
+  ['Re', 'Rhenium',      '186.21',  'transition',  6, 7],
+  ['Os', 'Osmium',       '190.23',  'transition',  6, 8],
+  ['Ir', 'Iridium',      '192.22',  'transition',  6, 9],
+  ['Pt', 'Platinum',     '195.08',  'transition',  6, 10],
+  ['Au', 'Gold',         '196.97',  'transition',  6, 11],
+  ['Hg', 'Mercury',      '200.59',  'transition',  6, 12],
+  ['Tl', 'Thallium',     '204.38',  'post',        6, 13],
+  ['Pb', 'Lead',         '207.2',   'post',        6, 14],
+  ['Bi', 'Bismuth',      '208.98',  'post',        6, 15],
+  ['Po', 'Polonium',     '(209)',    'post',        6, 16],
+  ['At', 'Astatine',     '(210)',    'halogen',     6, 17],
+  ['Rn', 'Radon',        '(222)',    'noble',       6, 18],
+  // Period 7
+  ['Fr', 'Francium',     '(223)',    'alkali',      7, 1],
+  ['Ra', 'Radium',       '(226)',    'alkaline',    7, 2],
+  ['Ac', 'Actinium',     '(227)',    'actinide',    7, 3],  // placeholder
+  ['Rf', 'Rutherfordium','(267)',    'transition',  7, 4],
+  ['Db', 'Dubnium',      '(268)',    'transition',  7, 5],
+  ['Sg', 'Seaborgium',   '(271)',    'transition',  7, 6],
+  ['Bh', 'Bohrium',      '(274)',    'transition',  7, 7],
+  ['Hs', 'Hassium',      '(269)',    'transition',  7, 8],
+  ['Mt', 'Meitnerium',   '(278)',    'unknown',     7, 9],
+  ['Ds', 'Darmstadtium', '(281)',    'unknown',     7, 10],
+  ['Rg', 'Roentgenium',  '(282)',    'unknown',     7, 11],
+  ['Cn', 'Copernicium',  '(285)',    'transition',  7, 12],
+  ['Nh', 'Nihonium',     '(286)',    'post',        7, 13],
+  ['Fl', 'Flerovium',    '(289)',    'post',        7, 14],
+  ['Mc', 'Moscovium',    '(290)',    'unknown',     7, 15],
+  ['Lv', 'Livermorium',  '(293)',    'unknown',     7, 16],
+  ['Ts', 'Tennessine',   '(294)',    'unknown',     7, 17],
+  ['Og', 'Oganesson',    '(294)',    'unknown',     7, 18],
+  // Lanthanides (row 9, cols 4–18)
+  ['Ce', 'Cerium',       '140.12',  'lanthanide',  9, 4],
+  ['Pr', 'Praseodymium', '140.91',  'lanthanide',  9, 5],
+  ['Nd', 'Neodymium',    '144.24',  'lanthanide',  9, 6],
+  ['Pm', 'Promethium',   '(145)',    'lanthanide',  9, 7],
+  ['Sm', 'Samarium',     '150.36',  'lanthanide',  9, 8],
+  ['Eu', 'Europium',     '151.96',  'lanthanide',  9, 9],
+  ['Gd', 'Gadolinium',   '157.25',  'lanthanide',  9, 10],
+  ['Tb', 'Terbium',      '158.93',  'lanthanide',  9, 11],
+  ['Dy', 'Dysprosium',   '162.50',  'lanthanide',  9, 12],
+  ['Ho', 'Holmium',      '164.93',  'lanthanide',  9, 13],
+  ['Er', 'Erbium',       '167.26',  'lanthanide',  9, 14],
+  ['Tm', 'Thulium',      '168.93',  'lanthanide',  9, 15],
+  ['Yb', 'Ytterbium',    '173.05',  'lanthanide',  9, 16],
+  ['Lu', 'Lutetium',     '174.97',  'lanthanide',  9, 17],
+  // Actinides (row 10, cols 4–18)
+  ['Th', 'Thorium',      '232.04',  'actinide',    10, 4],
+  ['Pa', 'Protactinium', '231.04',  'actinide',    10, 5],
+  ['U',  'Uranium',      '238.03',  'actinide',    10, 6],
+  ['Np', 'Neptunium',    '(237)',    'actinide',    10, 7],
+  ['Pu', 'Plutonium',    '(244)',    'actinide',    10, 8],
+  ['Am', 'Americium',    '(243)',    'actinide',    10, 9],
+  ['Cm', 'Curium',       '(247)',    'actinide',    10, 10],
+  ['Bk', 'Berkelium',    '(247)',    'actinide',    10, 11],
+  ['Cf', 'Californium',  '(251)',    'actinide',    10, 12],
+  ['Es', 'Einsteinium',  '(252)',    'actinide',    10, 13],
+  ['Fm', 'Fermium',      '(257)',    'actinide',    10, 14],
+  ['Md', 'Mendelevium',  '(258)',    'actinide',    10, 15],
+  ['No', 'Nobelium',     '(259)',    'actinide',    10, 16],
+  ['Lr', 'Lawrencium',   '(266)',    'actinide',    10, 17],
+];
+
+// Assign atomic numbers
+let atomicNum = 1;
+const elementData = ELEMENTS.map(([sym, name, mass, cat, period, group]) => ({
+  symbol: sym, name, mass, category: cat, period, group,
+  number: (() => {
+    // Lanthanides start at 58 (Ce), actinides at 90 (Th)
+    if (sym === 'Ce') atomicNum = 58;
+    if (sym === 'Th') atomicNum = 90;
+    return atomicNum++;
+  })()
+}));
+
+// ─── BUILD TABLE ─────────────────────────────────────────────────────────────
+const table = document.getElementById('table');
+let animDelay = 0;
+
+// Group labels row (row 0)
+for (let g = 1; g <= 18; g++) {
+  const lbl = document.createElement('div');
+  lbl.className = 'group-label';
+  lbl.style.cssText = `grid-column:${g}; grid-row:1;`;
+  lbl.textContent = g;
+  table.appendChild(lbl);
+}
+
+function placeElement(el, rowStart, delay) {
+  const color = CATEGORIES[el.category].color;
+  const card = document.createElement('div');
+  card.className = `element`;
+  card.dataset.cat = el.category;
+  card.style.cssText = `
+    grid-column: ${el.group};
+    grid-row: ${rowStart};
+    --cat-color: ${color};
+    animation-delay: ${delay}ms;
+  `;
+  card.innerHTML = `
+    <span class="el-number">${el.number}</span>
+    <span class="el-symbol">${el.symbol}</span>
+    <span class="el-name">${el.name}</span>
+    <span class="el-mass">${el.mass}</span>
+    <div class="orbit-overlay"><div class="orbit-dot"></div></div>
+  `;
+  card.addEventListener('mouseenter', (e) => showTooltip(e, el));
+  card.addEventListener('mousemove', moveTooltip);
+  card.addEventListener('mouseleave', hideTooltip);
+  table.appendChild(card);
+}
+
+// Period labels (col 1 of main rows 2–8)
+const periodLabels = ['1','2','3','4','5','6','7'];
+for (let p = 0; p < 7; p++) {
+  const lbl = document.createElement('div');
+  lbl.className = 'period-label';
+  lbl.style.cssText = `grid-column:1; grid-row:${p+2};`;
+  lbl.textContent = p + 1;
+  table.appendChild(lbl);
+}
+
+// Place main elements (periods 1–7 = grid rows 2–8)
+const mainElements = elementData.filter(e => e.period <= 7);
+mainElements.forEach(el => {
+  const rowStart = el.period + 1; // row 1 = group labels
+  placeElement(el, rowStart, animDelay);
+  animDelay += 12;
+});
+
+// Lanthanide/Actinide label placeholders in main table (col 3, rows 7,8)
+['57–71', '89–103'].forEach((lbl, i) => {
+  const ph = document.createElement('div');
+  ph.className = 'element';
+  ph.style.cssText = `
+    grid-column: 3;
+    grid-row: ${7 + i};
+    --cat-color: ${i === 0 ? CATEGORIES.lanthanide.color : CATEGORIES.actinide.color};
+    animation-delay: ${animDelay}ms;
+    font-size: 0.5rem;
+    color: ${i === 0 ? CATEGORIES.lanthanide.color : CATEGORIES.actinide.color};
+    justify-content: center;
+  `;
+  ph.textContent = lbl;
+  table.appendChild(ph);
+  animDelay += 15;
+});
+
+// Empty row separator (row 9)
+const sep = document.createElement('div');
+sep.style.cssText = `grid-column: 1 / -1; grid-row: 9; height: 10px;`;
+table.appendChild(sep);
+
+// Lanthanide label col (row 10)
+['Ln', 'An'].forEach((lbl, i) => {
+  const ph = document.createElement('div');
+  ph.className = 'element';
+  ph.style.cssText = `
+    grid-column: 2;
+    grid-row: ${10 + i};
+    --cat-color: ${i === 0 ? CATEGORIES.lanthanide.color : CATEGORIES.actinide.color};
+    animation-delay: ${animDelay}ms;
+    font-size:0.65rem;
+    color: ${i === 0 ? CATEGORIES.lanthanide.color : CATEGORIES.actinide.color};
+  `;
+  ph.textContent = lbl;
+  table.appendChild(ph);
+});
+
+// Lanthanides & Actinides (row 10 and 11)
+const fblock = elementData.filter(e => e.period >= 9);
+fblock.forEach(el => {
+  const rowStart = el.period + 1; // period 9 → row 10, period 10 → row 11
+  placeElement(el, rowStart, animDelay);
+  animDelay += 10;
+});
+
+// ─── LEGEND ──────────────────────────────────────────────────────────────────
+const legend = document.getElementById('legend');
+Object.entries(CATEGORIES).forEach(([key, {label, color}], i) => {
+  const item = document.createElement('div');
+  item.className = 'legend-item';
+  item.style.animationDelay = `${300 + i * 50}ms`;
+  item.innerHTML = `<div class="legend-dot" style="background:${color}"></div><span>${label}</span>`;
+  legend.appendChild(item);
+});
+
+// ─── CATEGORY FILTER BUTTONS ──────────────────────────────────────────────────
+const catFilter = document.getElementById('catFilter');
+const allBtn = document.createElement('button');
+allBtn.className = 'cat-btn active';
+allBtn.textContent = 'ALL';
+allBtn.style.setProperty('--btn-color', '#00e5ff');
+allBtn.addEventListener('click', () => {
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  allBtn.classList.add('active');
+  table.classList.remove('dim');
+  document.querySelectorAll('.element').forEach(el => el.classList.remove('highlighted'));
+});
+catFilter.appendChild(allBtn);
+
+Object.entries(CATEGORIES).forEach(([key, {label, color}]) => {
+  const btn = document.createElement('button');
+  btn.className = 'cat-btn';
+  btn.textContent = label;
+  btn.style.setProperty('--btn-color', color);
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    table.classList.add('dim');
+    document.querySelectorAll('.element').forEach(el => {
+      el.classList.toggle('highlighted', el.dataset.cat === key);
+    });
+  });
+  catFilter.appendChild(btn);
+});
+
+// ─── TOOLTIP ─────────────────────────────────────────────────────────────────
+const tooltip = document.getElementById('tooltip');
+
+function showTooltip(e, el) {
+  const color = CATEGORIES[el.category].color;
+  tooltip.style.setProperty('--tt-color', color);
+  tooltip.innerHTML = `
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:6px;">
+      <div class="tt-atom">
+        <div class="tt-core"></div>
+        <div class="tt-orbit tt-orbit-1"><div class="tt-electron"></div></div>
+        <div class="tt-orbit tt-orbit-2"><div class="tt-electron"></div></div>
+        <div class="tt-orbit tt-orbit-3"><div class="tt-electron"></div><div class="tt-electron-2"></div></div>
+      </div>
+      <div>
+        <div class="tooltip-symbol">${el.symbol}</div>
+        <div class="tooltip-name">${el.name}</div>
+      </div>
+    </div>
+    <div class="tooltip-row"><span>Atomic #</span><span>${el.number}</span></div>
+    <div class="tooltip-row"><span>Mass</span><span>${el.mass}</span></div>
+    <div class="tooltip-row"><span>Category</span><span>${CATEGORIES[el.category].label}</span></div>
+    <div class="tooltip-row"><span>Period</span><span>${el.period <= 8 ? el.period : el.period - 2}</span></div>
+  `;
+  tooltip.classList.add('visible');
+  moveTooltip(e);
+}
+
+function moveTooltip(e) {
+  const x = e.clientX + 18, y = e.clientY - 10;
+  const tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
+  tooltip.style.left = (x + tw > window.innerWidth ? e.clientX - tw - 18 : x) + 'px';
+  tooltip.style.top  = (y + th > window.innerHeight ? e.clientY - th - 10 : y) + 'px';
+}
+
+function hideTooltip() {
+  tooltip.classList.remove('visible');
+}
+
+// ─── PARTICLE SYSTEM ─────────────────────────────────────────────────────────
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [];
+
+function resize() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+function randomColor() {
+  const colors = Object.values(CATEGORIES).map(c => c.color);
+  return colors[Math.floor(Math.random() * colors.length)];
+}
+
+class Particle {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * W;
+    this.y = Math.random() * H;
+    this.r = Math.random() * 1.5 + 0.3;
+    this.color = randomColor();
+    this.vx = (Math.random() - 0.5) * 0.3;
+    this.vy = (Math.random() - 0.5) * 0.3;
+    this.alpha = Math.random() * 0.5 + 0.1;
+    this.life = 0;
+    this.maxLife = Math.random() * 400 + 100;
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.life++;
+    if (this.life > this.maxLife) this.reset();
+  }
+  draw() {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.fillStyle = this.color + Math.floor(this.alpha * 255).toString(16).padStart(2, '0');
+    ctx.fill();
+  }
+}
+
+for (let i = 0; i < 80; i++) particles.push(new Particle());
+
+function animParticles() {
+  ctx.clearRect(0, 0, W, H);
+  particles.forEach(p => { p.update(); p.draw(); });
+  requestAnimationFrame(animParticles);
+}
+animParticles();
+
+// Subtle wave pulse on each element periodically
+setInterval(() => {
+  const els = document.querySelectorAll('.element');
+  const idx = Math.floor(Math.random() * els.length);
+  const el = els[idx];
+  el.style.transition = 'box-shadow 0.2s';
+  const color = getComputedStyle(el).getPropertyValue('--cat-color').trim();
+  el.style.boxShadow = `0 0 14px ${color}`;
+  setTimeout(() => { el.style.boxShadow = ''; }, 400);
+}, 180);
+
+// ─── RIPPLE CLICK EFFECT ──────────────────────────────────────────────────────
+document.addEventListener('click', (e) => {
+  const ring = document.createElement('div');
+  ring.className = 'ripple-ring';
+  // pick color from nearest element or random
+  const el = e.target.closest('.element');
+  const color = el
+    ? getComputedStyle(el).getPropertyValue('--cat-color').trim()
+    : Object.values(CATEGORIES)[Math.floor(Math.random() * 11)].color;
+  ring.style.cssText = `left:${e.clientX}px; top:${e.clientY}px; border-color:${color}; box-shadow: 0 0 8px ${color};`;
+  document.body.appendChild(ring);
+  setTimeout(() => ring.remove(), 850);
+});
+
+// ─── FLOATING ORBIT RINGS (background canvas layer) ───────────────────────────
+const bgCanvas = document.createElement('canvas');
+bgCanvas.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:3;';
+document.body.appendChild(bgCanvas);
+const bgCtx = bgCanvas.getContext('2d');
+let bW, bH;
+function bgResize() { bW = bgCanvas.width = window.innerWidth; bH = bgCanvas.height = window.innerHeight; }
+bgResize();
+window.addEventListener('resize', bgResize);
+
+const catColors = Object.values(CATEGORIES).map(c => c.color);
+
+class OrbitRing {
+  constructor() { this.reset(); }
+  reset() {
+    this.x  = Math.random() * bW;
+    this.y  = Math.random() * bH;
+    this.r  = Math.random() * 40 + 20;
+    this.angle = Math.random() * Math.PI * 2;
+    this.speed = (Math.random() - 0.5) * 0.015;
+    this.tilt  = Math.random() * Math.PI;
+    this.color = catColors[Math.floor(Math.random() * catColors.length)];
+    this.alpha = Math.random() * 0.12 + 0.03;
+    this.eR    = 3;
+    this.life  = 0;
+    this.maxLife = Math.random() * 600 + 200;
+    this.vx = (Math.random() - 0.5) * 0.15;
+    this.vy = (Math.random() - 0.5) * 0.15;
+  }
+  update() {
+    this.angle += this.speed;
+    this.x += this.vx;
+    this.y += this.vy;
+    this.life++;
+    if (this.life > this.maxLife || this.x < -100 || this.x > bW + 100) this.reset();
+  }
+  draw() {
+    // Draw ellipse orbit
+    bgCtx.save();
+    bgCtx.translate(this.x, this.y);
+    bgCtx.rotate(this.tilt);
+    bgCtx.beginPath();
+    bgCtx.ellipse(0, 0, this.r, this.r * 0.38, 0, 0, Math.PI * 2);
+    bgCtx.strokeStyle = this.color + Math.floor(this.alpha * 255).toString(16).padStart(2,'0');
+    bgCtx.lineWidth = 0.8;
+    bgCtx.stroke();
+    // Draw electron
+    const ex = Math.cos(this.angle) * this.r;
+    const ey = Math.sin(this.angle) * this.r * 0.38;
+    bgCtx.beginPath();
+    bgCtx.arc(ex, ey, this.eR, 0, Math.PI * 2);
+    bgCtx.fillStyle = this.color + 'cc';
+    bgCtx.shadowColor = this.color;
+    bgCtx.shadowBlur = 8;
+    bgCtx.fill();
+    bgCtx.restore();
+  }
+}
+
+const orbitRings = Array.from({length: 18}, () => new OrbitRing());
+
+function animBg() {
+  bgCtx.clearRect(0, 0, bW, bH);
+  orbitRings.forEach(o => { o.update(); o.draw(); });
+  requestAnimationFrame(animBg);
+}
+animBg();
+</script>
+</body>
+</html>
